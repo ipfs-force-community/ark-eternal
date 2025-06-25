@@ -5,7 +5,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
-	"database/sql"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
@@ -117,25 +116,4 @@ func createJWTToken(serviceName string, privateKey *ecdsa.PrivateKey) (string, e
 	}
 
 	return tokenString, nil
-}
-
-func initDB(dbPath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		return nil, err
-	}
-
-	// 创建表
-	createTableSQL := `
-    CREATE TABLE IF NOT EXISTS data (
-        user_address TEXT,
-        file_name TEXT,
-        cid TEXT
-    );`
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
-		return nil, err
-	}
-
-	return db, nil
 }
