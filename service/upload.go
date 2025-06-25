@@ -22,7 +22,7 @@ import (
 	"github.com/asamuj/ark-eternal/database"
 )
 
-const chunkSize = int64((256 << 20 * 127) / 128)
+const chunkSize = 1 << 20
 
 type UploadRequest struct {
 	UserAddress string `json:"user_address"`

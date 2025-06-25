@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -53,6 +54,7 @@ func (s *Service) Run(port int32) error {
 	})
 	r.POST("/upload", func(c *gin.Context) {
 		if err := s.uploadFile(c); err != nil {
+			slog.Error("failed to upload file", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
 			})
@@ -65,6 +67,7 @@ func (s *Service) Run(port int32) error {
 
 	r.GET("/download", func(c *gin.Context) {
 		if err := s.downloadFile(c); err != nil {
+			slog.Error("failed to download file", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
 			})
@@ -75,6 +78,7 @@ func (s *Service) Run(port int32) error {
 	r.GET("/files", func(c *gin.Context) {
 		files, err := s.listFiles(c)
 		if err != nil {
+			slog.Error("failed to list files", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": err.Error(),
 			})
