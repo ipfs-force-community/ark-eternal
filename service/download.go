@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -36,6 +37,10 @@ func (s *Service) downloadFile(c *gin.Context) error {
 	// Create HTTP client
 	client := &http.Client{}
 
+	// Create a context to manage cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Channel to collect results
 	type downloadResult struct {
 		index int
@@ -53,20 +58,26 @@ func (s *Service) downloadFile(c *gin.Context) error {
 
 	for i, cidString := range cids {
 		wg.Add(1)
-		go func(index int, cid string) {
+		go func(ctx context.Context, index int, cid string) {
 			defer wg.Done()
 
 			// Acquire semaphore
-			semaphore <- struct{}{}
-			defer func() { <-semaphore }()
+			select {
+			case semaphore <- struct{}{}:
+				defer func() { <-semaphore }()
+			case <-ctx.Done():
+				// Exit if context is canceled
+				return
+			}
 
 			slog.Info("Downloading piece", "cid", cid, "user_address", userAddress, "file_name", fileName)
 			downloadURL := fmt.Sprintf("%s/piece/%s", s.serviceURL, cid)
 
 			// Create the GET request
-			req, err := http.NewRequest("GET", downloadURL, nil)
+			req, err := http.NewRequestWithContext(ctx, "GET", downloadURL, nil)
 			if err != nil {
 				results <- downloadResult{index: index, err: fmt.Errorf("failed to create request for CID %s: %v", cid, err)}
+				cancel() // Cancel all other tasks
 				return
 			}
 
@@ -74,6 +85,7 @@ func (s *Service) downloadFile(c *gin.Context) error {
 			resp, err := client.Do(req)
 			if err != nil {
 				results <- downloadResult{index: index, err: fmt.Errorf("failed to download piece %s: %v", cid, err)}
+				cancel() // Cancel all other tasks
 				return
 			}
 			defer resp.Body.Close()
@@ -81,6 +93,7 @@ func (s *Service) downloadFile(c *gin.Context) error {
 			// Check response status
 			if resp.StatusCode != http.StatusOK {
 				results <- downloadResult{index: index, err: fmt.Errorf("failed to download piece %s: status code %d", cid, resp.StatusCode)}
+				cancel() // Cancel all other tasks
 				return
 			}
 
@@ -88,11 +101,12 @@ func (s *Service) downloadFile(c *gin.Context) error {
 			data, err := io.ReadAll(resp.Body)
 			if err != nil {
 				results <- downloadResult{index: index, err: fmt.Errorf("failed to read piece %s: %v", cid, err)}
+				cancel() // Cancel all other tasks
 				return
 			}
 
 			results <- downloadResult{index: index, data: data}
-		}(i, cidString)
+		}(ctx, i, cidString)
 	}
 
 	// Close the results channel once all downloads are done
