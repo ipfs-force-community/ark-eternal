@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 
 	"github.com/filecoin-project/go-commp-utils/nonffi"
@@ -233,6 +234,7 @@ func preparePiece(r io.ReadSeeker) (cid.Cid, uint64, []byte, error) {
 }
 
 func downloadContent(resourceURL string) ([]byte, error) {
+	slog.Info("Downloading content from resource URL", "url", resourceURL)
 	url, err := launcher.New().
 		Headless(true).
 		NoSandbox(true). // 👈 关键
@@ -294,5 +296,6 @@ func downloadContent(resourceURL string) ([]byte, error) {
 		return nil, err
 	}
 
+	slog.Info("Content downloaded successfully", "length", len(html.Value.Str()))
 	return []byte(html.Value.Str()), nil
 }

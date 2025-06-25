@@ -54,3 +54,24 @@ func QueryData(db *sql.DB, userAddress, filename string) ([]string, error) {
 
 	return cids, nil
 }
+
+func ListFiles(db *sql.DB, userAddress string) ([]string, error) {
+	// Query the database for file names
+	querySQL := `SELECT file_name FROM data WHERE user_address = ?`
+	rows, err := db.Query(querySQL, userAddress)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var files []string
+	for rows.Next() {
+		var fileName string
+		if err := rows.Scan(&fileName); err != nil {
+			return nil, err
+		}
+		files = append(files, fileName)
+	}
+
+	return files, nil
+}
