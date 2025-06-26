@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/filecoin-project/go-commp-utils/nonffi"
 	commcid "github.com/filecoin-project/go-fil-commcid"
@@ -116,30 +115,20 @@ func (s *Service) uploadFile(c *gin.Context) error {
 
 	}
 
-	rootInputs := make([]string, 0)
-	for i, rootSet := range rootSets {
+	for _, rootSet := range rootSets {
 		pieceSize := uint64(0)
 		for _, piece := range rootSet.pieces {
 			pieceSize += uint64(piece.Size)
 		}
-		fmt.Printf("%d: pieceSize: %d\n", i, pieceSize)
+
 		root, err := nonffi.GenerateUnsealedCID(abi.RegisteredSealProof_StackedDrg64GiBV1_1, rootSet.pieces)
 		if err != nil {
 			return fmt.Errorf("failed to generate unsealed CID: %v", err)
 		}
-		s := fmt.Sprintf("%s:%s\n", root, rootSet.subrootStr[1:])
-		fmt.Printf("%s\n", s)
 
-		rootInputs = append(rootInputs, fmt.Sprintf("%s:%s", root, rootSet.subrootStr[1:]))
-	}
-
-	time.Sleep(30 * time.Second)
-	if err := AddRoots("", s.serviceURL, jwtToken, s.proofSetID, rootInputs); err != nil {
-		return fmt.Errorf("failed to add roots: %v", err)
-	}
-
-	if err := database.InsertData(s.db, ur.UserAddress, ur.FileName, chunkCids); err != nil {
-		return fmt.Errorf("failed to insert data into database: %v", err)
+		if err := database.InsertData(s.db, ur.UserAddress, ur.FileName, s.proofSetID, root.String(), chunkCids); err != nil {
+			return fmt.Errorf("failed to insert data into database: %v", err)
+		}
 	}
 
 	return nil

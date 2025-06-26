@@ -9,6 +9,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -73,8 +74,38 @@ func LoadPrivateKey(keyPath string) (*ecdsa.PrivateKey, error) {
 		return privKey, nil
 	}
 
+	return loadPrivateKey(file)
+}
+
+func ExportPublicKey(keyPath string) (string, error) {
+	file, err := os.Open(keyPath)
+	if err != nil {
+		return "", err
+	}
+
+	defer file.Close()
+
+	privKey, err := loadPrivateKey(file)
+	if err != nil {
+		return "", fmt.Errorf("failed to load private key: %v", err)
+	}
+
+	// Serialize the public key to PEM
+	pubBytes, err := x509.MarshalPKIXPublicKey(&privKey.PublicKey)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal public key: %v", err)
+	}
+	pubPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: pubBytes,
+	})
+
+	return string(pubPEM), nil
+}
+
+func loadPrivateKey(r io.Reader) (*ecdsa.PrivateKey, error) {
 	var serviceSecret map[string]string
-	decoder := json.NewDecoder(file)
+	decoder := json.NewDecoder(r)
 	if err := decoder.Decode(&serviceSecret); err != nil {
 		return nil, err
 	}

@@ -1,76 +1,90 @@
 package database
 
 import (
-	"database/sql"
 	"strings"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
-func InitDB(dbPath string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+type Status string
+
+const (
+	StatusPending   Status = "pending"
+	StatusCompleted Status = "completed"
+	StatusFailed    Status = "failed"
+)
+
+type FileInfo struct {
+	ID          uint   `gorm:"primaryKey"`
+	UserAddress string `gorm:"index;not null"`
+	FileName    string `gorm:"uniqueIndex:unique_user_file;not null"`
+	ProofSetID  int
+	CIDs        string
+	Root        string
+	Status      Status `gorm:"default:'pending'"`
+}
+
+func InitDB(dbPath string) (*gorm.DB, error) {
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}
 
-	createTableSQL := `
-    CREATE TABLE IF NOT EXISTS data (
-        user_address TEXT,
-        file_name TEXT,
-        cids TEXT,
-		UNIQUE(user_address, file_name)
-    );`
-
-	_, err = db.Exec(createTableSQL)
-	if err != nil {
+	// Auto-migrate the schema
+	if err := db.AutoMigrate(&FileInfo{}); err != nil {
 		return nil, err
 	}
 
 	return db, nil
 }
 
-func InsertData(db *sql.DB, userAddress string, fileName string, cids []string) error {
-	insertSQL := `INSERT INTO data (user_address, file_name, cids) VALUES (?, ?, ?)`
-	_, err := db.Exec(insertSQL, userAddress, fileName, strings.Join(cids, " "))
-	return err
+func InsertData(db *gorm.DB, userAddress, fileName string, proofSetID int, root string, cids []string) error {
+	fileInfo := FileInfo{
+		UserAddress: userAddress,
+		FileName:    fileName,
+		ProofSetID:  proofSetID,
+		Root:        root,
+		CIDs:        strings.Join(cids, " "),
+		Status:      StatusPending,
+	}
+	return db.Create(&fileInfo).Error
 }
 
-func QueryData(db *sql.DB, userAddress, filename string) ([]string, error) {
-	// Query the database for the CIDs
-	querySQL := `SELECT cids FROM data WHERE user_address = ? AND file_name = ?`
-	cids := make([]string, 0)
-	rows, err := db.Query(querySQL, userAddress, filename)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var cidString string
-		if err := rows.Scan(&cidString); err != nil {
-			return nil, err
-		}
-
-		cids = append(cids, strings.Split(cidString, " ")...)
-	}
-
-	return cids, nil
+func UpdateFileStatus(db *gorm.DB, id uint, status Status) error {
+	return db.Model(&FileInfo{}).
+		Where("id = ?", id).
+		Update("status", status).Error
 }
 
-func ListFiles(db *sql.DB, userAddress string) ([]string, error) {
-	// Query the database for file names
-	querySQL := `SELECT file_name FROM data WHERE user_address = ?`
-	rows, err := db.Query(querySQL, userAddress)
-	if err != nil {
+func QueryFileInfo(db *gorm.DB, userAddress, fileName string, status Status) ([]string, error) {
+	var fileInfo FileInfo
+	if err := db.Where("user_address = ? AND file_name = ? AND status = ?", userAddress, fileName, status).
+		First(&fileInfo).Error; err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+
+	return strings.Split(fileInfo.CIDs, " "), nil
+}
+
+func QueryPendingInfo(db *gorm.DB) ([]FileInfo, error) {
+	var fileInfos []FileInfo
+	if err := db.Where("status = ?", StatusPending).Find(&fileInfos).Error; err != nil {
+		return nil, err
+	}
+
+	return fileInfos, nil
+}
+
+func ListFiles(db *gorm.DB, userAddress string) ([]string, error) {
+	var fileInfos []FileInfo
+	if err := db.Where("user_address = ?", userAddress).Find(&fileInfos).Error; err != nil {
+		return nil, err
+	}
 
 	var files []string
-	for rows.Next() {
-		var fileName string
-		if err := rows.Scan(&fileName); err != nil {
-			return nil, err
-		}
-		files = append(files, fileName)
+	for _, d := range fileInfos {
+		files = append(files, d.FileName)
 	}
 
 	return files, nil

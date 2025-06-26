@@ -33,6 +33,19 @@ func main() {
 				},
 				Action: addRoots,
 			},
+			{
+				Name:  "export-public-key",
+				Usage: "Export the public key of the PDP service",
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					publicKey, err := service.ExportPublicKey(cmd.String("private_key_path"))
+					if err != nil {
+						return fmt.Errorf("failed to export public key: %w", err)
+					}
+
+					fmt.Println("Public Key:", publicKey)
+					return nil
+				},
+			},
 		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -47,7 +60,7 @@ func main() {
 			},
 			&cli.IntFlag{
 				Name:  "proof_set_id",
-				Value: 387,
+				Value: 390,
 				Usage: "ID of the proof set",
 			},
 			&cli.StringFlag{
@@ -85,8 +98,13 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to load private key: %w", err)
 	}
 
-	service.NewService(db, privateKey, cmd.Int("proof_set_id"), cmd.String("service_url"), cmd.String("service_name")).
-		Run(cmd.Int32("port"))
+	ser := service.NewService(ctx, db, privateKey, cmd.Int("proof_set_id"), cmd.String("service_url"), cmd.String("service_name"))
+
+	go func() {
+		ser.Schedule()
+	}()
+
+	ser.Run(cmd.Int32("port"))
 
 	return nil
 }
