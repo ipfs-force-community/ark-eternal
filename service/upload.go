@@ -22,7 +22,7 @@ import (
 	"github.com/ipfs-force-community/ark-eternal/database"
 )
 
-const chunkSize = 1 << 20
+const chunkSize = 10 << 20
 
 type UploadRequest struct {
 	UserAddress string `json:"user_address"`
@@ -148,7 +148,8 @@ func uploadOnePiece(client *http.Client, serviceURL string, reqBody []byte, jwtT
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusOK {
+	switch resp.StatusCode {
+	case http.StatusOK:
 		// Piece already exists, get the pieceCID from the response
 		var respData map[string]string
 		err = json.NewDecoder(resp.Body).Decode(&respData)
@@ -159,7 +160,7 @@ func uploadOnePiece(client *http.Client, serviceURL string, reqBody []byte, jwtT
 		fmt.Printf("Piece already exists with CID: %s\n", pieceCID)
 
 		return nil
-	} else if resp.StatusCode == http.StatusCreated {
+	case http.StatusCreated:
 		// Get the upload URL from the Location header
 		uploadURL := resp.Header.Get("Location")
 		if uploadURL == "" {
@@ -191,7 +192,7 @@ func uploadOnePiece(client *http.Client, serviceURL string, reqBody []byte, jwtT
 		}
 
 		return nil
-	} else {
+	default:
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("server returned status code %d: %s", resp.StatusCode, string(body))
 	}
