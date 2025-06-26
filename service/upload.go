@@ -126,7 +126,7 @@ func (s *Service) uploadFile(c *gin.Context) error {
 			return fmt.Errorf("failed to generate unsealed CID: %v", err)
 		}
 
-		if err := database.InsertData(s.db, ur.UserAddress, ur.FileName, s.proofSetID, root.String(), chunkCids); err != nil {
+		if err := database.InsertData(s.db, ur.UserAddress, ur.FileName, pieceSize, s.proofSetID, root.String(), chunkCids); err != nil {
 			return fmt.Errorf("failed to insert data into database: %v", err)
 		}
 	}

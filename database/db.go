@@ -2,6 +2,7 @@ package database
 
 import (
 	"strings"
+	"time"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -19,10 +20,13 @@ type FileInfo struct {
 	ID          uint   `gorm:"primaryKey"`
 	UserAddress string `gorm:"index;not null"`
 	FileName    string `gorm:"uniqueIndex:unique_user_file;not null"`
+	Size        uint64 `gorm:"not null"`
 	ProofSetID  int
 	CIDs        string
 	Root        string
-	Status      Status `gorm:"default:'pending'"`
+	Status      Status    `gorm:"default:'pending'"`
+	CreatedAt   time.Time `gorm:"autoCreateTime"`
+	UpdatedAt   time.Time `gorm:"autoUpdateTime"`
 }
 
 func InitDB(dbPath string) (*gorm.DB, error) {
@@ -39,10 +43,11 @@ func InitDB(dbPath string) (*gorm.DB, error) {
 	return db, nil
 }
 
-func InsertData(db *gorm.DB, userAddress, fileName string, proofSetID int, root string, cids []string) error {
+func InsertData(db *gorm.DB, userAddress, fileName string, size uint64, proofSetID int, root string, cids []string) error {
 	fileInfo := FileInfo{
 		UserAddress: userAddress,
 		FileName:    fileName,
+		Size:        size,
 		ProofSetID:  proofSetID,
 		Root:        root,
 		CIDs:        strings.Join(cids, " "),
@@ -76,16 +81,11 @@ func QueryPendingInfo(db *gorm.DB) ([]FileInfo, error) {
 	return fileInfos, nil
 }
 
-func ListFiles(db *gorm.DB, userAddress string) ([]string, error) {
+func ListFiles(db *gorm.DB, userAddress string) ([]FileInfo, error) {
 	var fileInfos []FileInfo
 	if err := db.Where("user_address = ?", userAddress).Find(&fileInfos).Error; err != nil {
 		return nil, err
 	}
 
-	var files []string
-	for _, d := range fileInfos {
-		files = append(files, d.FileName)
-	}
-
-	return files, nil
+	return fileInfos, nil
 }
