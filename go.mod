@@ -1,4 +1,4 @@
-module github.com/asamuj/ark-eternal
+module github.com/ipfs-force-community/ark-eternal
 
 go 1.24.4
 
@@ -9,6 +9,7 @@ require (
 	github.com/filecoin-project/go-state-types v0.16.0
 	github.com/go-rod/rod v0.116.2
 	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/gozelle/spew v1.1.17
 	github.com/ipfs/go-cid v0.5.0
 	github.com/urfave/cli/v3 v3.3.8
 )
@@ -17,11 +18,13 @@ require (
 	github.com/filecoin-project/go-address v1.2.0 // indirect
 	github.com/filecoin-project/go-commp-utils v0.1.4 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
+	github.com/gozelle/color v1.14.1 // indirect
 	github.com/ipfs/go-block-format v0.2.0 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.3 // indirect
 	github.com/ipfs/go-ipld-cbor v0.2.0 // indirect
 	github.com/ipfs/go-ipld-format v0.6.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/minio/sha256-simd v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect

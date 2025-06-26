@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/filecoin-project/go-commp-utils/nonffi"
 	commcid "github.com/filecoin-project/go-fil-commcid"
@@ -19,7 +20,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/ipfs/go-cid"
 
-	"github.com/asamuj/ark-eternal/database"
+	"github.com/ipfs-force-community/ark-eternal/database"
 )
 
 const chunkSize = 1 << 20
@@ -98,6 +99,8 @@ func (s *Service) uploadFile(c *gin.Context) error {
 			return fmt.Errorf("failed to upload piece: %v", err)
 		}
 
+		slog.Info("Piece uploaded successfully", "cid", commP.String())
+
 		chunkCids = append(chunkCids, commP.String())
 
 		if rootSize+paddedPieceSize > uint64(maxRootSize) {
@@ -113,6 +116,7 @@ func (s *Service) uploadFile(c *gin.Context) error {
 
 	}
 
+	rootInputs := make([]string, 0)
 	for i, rootSet := range rootSets {
 		pieceSize := uint64(0)
 		for _, piece := range rootSet.pieces {
@@ -125,6 +129,13 @@ func (s *Service) uploadFile(c *gin.Context) error {
 		}
 		s := fmt.Sprintf("%s:%s\n", root, rootSet.subrootStr[1:])
 		fmt.Printf("%s\n", s)
+
+		rootInputs = append(rootInputs, fmt.Sprintf("%s:%s", root, rootSet.subrootStr[1:]))
+	}
+
+	time.Sleep(30 * time.Second)
+	if err := AddRoots("", s.serviceURL, jwtToken, s.proofSetID, rootInputs); err != nil {
+		return fmt.Errorf("failed to add roots: %v", err)
 	}
 
 	if err := database.InsertData(s.db, ur.UserAddress, ur.FileName, chunkCids); err != nil {

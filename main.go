@@ -7,14 +7,33 @@ import (
 
 	"github.com/urfave/cli/v3"
 
-	"github.com/asamuj/ark-eternal/database"
-	"github.com/asamuj/ark-eternal/service"
+	"github.com/ipfs-force-community/ark-eternal/database"
+	"github.com/ipfs-force-community/ark-eternal/service"
 )
 
 func main() {
 	app := &cli.Command{
 		Name:  "pdp-hackthon",
 		Usage: "pdp hackthon",
+		Commands: []*cli.Command{
+			{
+				Name:   "create-proof-set-id",
+				Usage:  "Create a proof set ID",
+				Action: createProofSetID,
+			},
+			{
+				Name:  "add-roots",
+				Usage: "Add roots to a proof set on the PDP service",
+				Flags: []cli.Flag{
+					&cli.StringSliceFlag{
+						Name:     "root",
+						Usage:    "Root CID and its subroots. Format: rootCID:subrootCID1+subrootCID2,...",
+						Required: true,
+					},
+				},
+				Action: addRoots,
+			},
+		},
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "db_path",
@@ -28,12 +47,16 @@ func main() {
 			},
 			&cli.IntFlag{
 				Name:  "proof_set_id",
-				Value: 40,
+				Value: 387,
 				Usage: "ID of the proof set",
 			},
 			&cli.StringFlag{
+				Name:  "service_name",
+				Value: "pdp-service",
+			},
+			&cli.StringFlag{
 				Name:  "service_url",
-				Value: "https://yablu.net",
+				Value: "https://caliberation-pdp.infrafolio.com",
 				Usage: "URL of the service",
 			},
 			&cli.Int32Flag{
@@ -62,8 +85,37 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to load private key: %w", err)
 	}
 
-	service.NewService(db, privateKey, cmd.Int("proof_set_id"), cmd.String("service_url"), "pdp-hackthon").
+	service.NewService(db, privateKey, cmd.Int("proof_set_id"), cmd.String("service_url"), cmd.String("service_name")).
 		Run(cmd.Int32("port"))
 
+	return nil
+}
+
+func createProofSetID(ctx context.Context, cmd *cli.Command) error {
+	jwtToken, err := service.GetJWTToken(cmd.String("service_name"), cmd.String("private_key_path"))
+	if err != nil {
+		return fmt.Errorf("failed to create JWT token: %w", err)
+	}
+
+	txHash, err := service.CreateProofSet("0x6170dE2b09b404776197485F3dc6c968Ef948505", "", cmd.String("service_url"), jwtToken)
+	if err != nil {
+		return fmt.Errorf("failed to create proof set: %w", err)
+	}
+
+	fmt.Printf("Proof set created successfully with transaction hash: %s\n", txHash)
+	return nil
+}
+
+func addRoots(ctx context.Context, cmd *cli.Command) error {
+	jwtToken, err := service.GetJWTToken(cmd.String("service_name"), cmd.String("private_key_path"))
+	if err != nil {
+		return fmt.Errorf("failed to create JWT token: %w", err)
+	}
+
+	if err := service.AddRoots("", cmd.String("service_url"), jwtToken, cmd.Int("proof_set_id"), cmd.StringSlice("root")); err != nil {
+		return fmt.Errorf("failed to add roots to proof set: %w", err)
+	}
+
+	fmt.Println("Roots added successfully to the proof set.")
 	return nil
 }

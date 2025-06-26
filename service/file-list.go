@@ -3,8 +3,9 @@ package service
 import (
 	"fmt"
 
-	"github.com/asamuj/ark-eternal/database"
 	"github.com/gin-gonic/gin"
+
+	"github.com/ipfs-force-community/ark-eternal/database"
 )
 
 func (s *Service) listFiles(c *gin.Context) (any, error) {

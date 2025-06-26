@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -67,7 +68,6 @@ func CreateProofSet(recordKeeper, extraDataHexStr, serviceURL, jwtToken string) 
 	} else {
 		return "", fmt.Errorf("failed to extract transaction hash from Location header")
 	}
-
 }
 
 func GetProofSetCreateStatus(txHash, serviceURL, jwtToken string) error {
@@ -150,6 +150,7 @@ func AddRoots(extraDataHexStr, serviceURL, jwtToken string, proofSetID int, root
 	var addRootRequests []AddRootRequest
 
 	for _, rootInput := range rootInputs {
+		slog.Info("Processing root input", "input", rootInput, "proofSetID", proofSetID)
 		// Expected format: rootCID:subrootCID1,subrootCID2,...
 		parts := strings.SplitN(rootInput, ":", 2)
 		if len(parts) != 2 {

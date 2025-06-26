@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/asamuj/ark-eternal/database"
+	"github.com/ipfs-force-community/ark-eternal/database"
 )
 
 type DownloadFileRequest struct {
