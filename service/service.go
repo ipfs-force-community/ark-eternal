@@ -95,6 +95,16 @@ func (s *Service) Run(port int32) error {
 		c.JSON(http.StatusOK, files)
 	})
 
+	r.GET("/:cid", func(c *gin.Context) {
+		if err := s.fetchFileByRootCID(c); err != nil {
+			slog.Error("failed to fetch file by root CID", "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+	})
+
 	r.Run(fmt.Sprintf(":%d", port))
 	return nil
 }

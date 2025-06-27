@@ -72,6 +72,16 @@ func QueryFileInfo(db *gorm.DB, userAddress, fileName string, status Status) ([]
 	return strings.Split(fileInfo.CIDs, " "), nil
 }
 
+func QueryCIDsByRoot(db *gorm.DB, root string, status Status) ([]string, error) {
+	var fileInfo FileInfo
+	if err := db.Where("root = ? AND status = ?", root, status).
+		First(&fileInfo).Error; err != nil {
+		return nil, err
+	}
+
+	return strings.Split(fileInfo.CIDs, " "), nil
+}
+
 func QueryPendingInfo(db *gorm.DB) ([]FileInfo, error) {
 	var fileInfos []FileInfo
 	if err := db.Where("status = ?", StatusPending).Find(&fileInfos).Error; err != nil {

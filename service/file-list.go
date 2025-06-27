@@ -17,6 +17,7 @@ const (
 
 type FileInfo struct {
 	Name       string `json:"file_name"`
+	Root       string `json:"root"`
 	Size       string `json:"size"`
 	UploadTime string `json:"upload_time"`
 	Status     string `json:"status"`
@@ -37,6 +38,7 @@ func (s *Service) listFiles(c *gin.Context) (any, error) {
 	for _, file := range files {
 		fileInfos = append(fileInfos, FileInfo{
 			Name:       file.FileName,
+			Root:       file.Root,
 			Size:       humanReadableSize(file.Size),
 			UploadTime: file.CreatedAt.Format("2006-01-02 15:04"),
 			Status:     string(file.Status),

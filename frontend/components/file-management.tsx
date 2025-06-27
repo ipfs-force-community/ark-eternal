@@ -76,6 +76,16 @@ export function FileManagement() {
     }
   }
 
+  const handleDownload = async (cid: string) => {
+    if (!cid) return
+
+
+    const url = await apiService.downloadFileByCID(cid)
+    const newWindow = window.open(url, "_blank")
+    showToast("Failed to download file", "error")
+
+  }
+
   useEffect(() => {
     if (isConnected && address) {
       fetchFiles()
@@ -107,6 +117,15 @@ export function FileManagement() {
         return "Unknown"
     }
   }
+
+  // Helper function to truncate the root string
+  const truncateRoot = (root: string, startLength: number = 6, endLength: number = 6): string => {
+    if (!root || root.length <= startLength + endLength) {
+      return root; // If the root is short, return it as is
+    }
+    return `${root.slice(0, startLength)}...${root.slice(-endLength)}`;
+  };
+
 
   if (!isConnected) {
     return (
@@ -160,6 +179,7 @@ export function FileManagement() {
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">File Name</th>
+                <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Root</th>
                 <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Size</th>
                 <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Upload Time</th>
                 <th className="py-3 px-4 text-left text-sm font-medium text-gray-500">Status</th>
@@ -190,6 +210,18 @@ export function FileManagement() {
                         {file.file_name}
                         <ExternalLink className="w-3 h-3 ml-1" />
                       </button>
+                    </td>
+                    <td className="py-3 px-4 text-sm">
+                      <a
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleDownload(file.root);
+                        }}
+                        className="text-gray-700 hover:text-blue-500 hover:underline flex items-center transition-colors duration-200"
+                      >
+                        {truncateRoot(file.root)}
+                      </a>
                     </td>
                     <td className="py-3 px-4 text-sm text-gray-600">{file.size}</td>
                     <td className="py-3 px-4 text-sm text-gray-600">{file.upload_time}</td>

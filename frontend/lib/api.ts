@@ -52,6 +52,18 @@ class ApiService {
 
     return response.text()
   }
+
+  async downloadFileByCID(cid: string): Promise<string> {
+    // Construct the URL using the CID as a query parameter
+    const url = `${this.baseUrl}/${encodeURIComponent(cid)}`
+  
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Download failed: ${response.status}`)
+    }
+  
+    return url
+  }
 }
 
 export const apiService = new ApiService()

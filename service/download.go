@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"sync"
 
@@ -34,6 +33,24 @@ func (s *Service) downloadFile(c *gin.Context) error {
 		return err
 	}
 
+	return s.fetchFileByCIDS(c, cids)
+}
+
+func (s *Service) fetchFileByRootCID(c *gin.Context) error {
+	rootCID := c.Param("cid")
+	if rootCID == "" {
+		return fmt.Errorf("root CID is required")
+	}
+
+	cids, err := database.QueryCIDsByRoot(s.db, rootCID, database.StatusCompleted)
+	if err != nil {
+		return fmt.Errorf("failed to get file data for CID %s: %v", rootCID, err)
+	}
+
+	return s.fetchFileByCIDS(c, cids)
+}
+
+func (s *Service) fetchFileByCIDS(c *gin.Context, cids []string) error {
 	// Create HTTP client
 	client := &http.Client{}
 
@@ -70,7 +87,6 @@ func (s *Service) downloadFile(c *gin.Context) error {
 				return
 			}
 
-			slog.Info("Downloading piece", "cid", cid, "user_address", userAddress, "file_name", fileName)
 			downloadURL := fmt.Sprintf("%s/piece/%s", s.serviceURL, cid)
 
 			// Create the GET request
@@ -123,9 +139,7 @@ func (s *Service) downloadFile(c *gin.Context) error {
 		}
 		downloadedPieces[result.index] = result.data
 	}
-
-	c.Header("Content-Type", "application/octet-stream")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
+	c.Header("Content-Type", "text/html")
 
 	// Write all pieces to the client in order
 	for _, piece := range downloadedPieces {

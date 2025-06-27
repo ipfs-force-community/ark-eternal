@@ -1,5 +1,6 @@
 export interface FileInfo {
   file_name: string
+  root: string
   size: string
   upload_time: string
   status: "completed" | "pending" | "failed"
