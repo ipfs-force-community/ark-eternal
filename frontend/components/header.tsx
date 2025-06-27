@@ -25,7 +25,6 @@ export function Header() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center">
           <h1 className="text-2xl font-['Pacifico'] text-primary mr-2">{config.app.name}</h1>
-          <span className="text-gray-700 font-medium">{config.app.name}</span>
         </div>
 
         <div className="flex items-center gap-3">
