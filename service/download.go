@@ -28,7 +28,7 @@ func (s *Service) downloadFile(c *gin.Context) error {
 		return fmt.Errorf("file_name is required")
 	}
 
-	cids, err := database.QueryFileInfo(s.db, userAddress, fileName, database.StatusCompleted)
+	cids, err := database.QueryCIDs(s.db, userAddress, fileName, database.StatusCompleted)
 	if err != nil {
 		return err
 	}

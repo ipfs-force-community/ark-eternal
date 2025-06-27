@@ -22,7 +22,7 @@ type FileInfo struct {
 	FileName    string `gorm:"uniqueIndex:unique_user_file;not null"`
 	Size        uint64 `gorm:"not null"`
 	ProofSetID  int
-	CIDs        string
+	CIDs        string `gorm:"column:cids"`
 	Root        string
 	Status      Status    `gorm:"default:'pending'"`
 	CreatedAt   time.Time `gorm:"autoCreateTime"`
@@ -62,24 +62,24 @@ func UpdateFileStatus(db *gorm.DB, id uint, status Status) error {
 		Update("status", status).Error
 }
 
-func QueryFileInfo(db *gorm.DB, userAddress, fileName string, status Status) ([]string, error) {
-	var fileInfo FileInfo
-	if err := db.Where("user_address = ? AND file_name = ? AND status = ?", userAddress, fileName, status).
-		First(&fileInfo).Error; err != nil {
+func QueryCIDs(db *gorm.DB, userAddress, fileName string, status Status) ([]string, error) {
+	cids := ""
+	if err := db.Model(&FileInfo{}).Where("user_address = ? AND file_name = ? AND status = ?", userAddress, fileName, status).
+		Pluck("cids", &cids).Error; err != nil {
 		return nil, err
 	}
 
-	return strings.Split(fileInfo.CIDs, " "), nil
+	return strings.Split(cids, " "), nil
 }
 
 func QueryCIDsByRoot(db *gorm.DB, root string, status Status) ([]string, error) {
-	var fileInfo FileInfo
-	if err := db.Where("root = ? AND status = ?", root, status).
-		First(&fileInfo).Error; err != nil {
+	cids := ""
+	if err := db.Model(&FileInfo{}).Where("root = ? AND status = ?", root, status).
+		Pluck("cids", &cids).Error; err != nil {
 		return nil, err
 	}
 
-	return strings.Split(fileInfo.CIDs, " "), nil
+	return strings.Split(cids, " "), nil
 }
 
 func QueryPendingInfo(db *gorm.DB) ([]FileInfo, error) {
