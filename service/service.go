@@ -134,6 +134,8 @@ func (s *Service) performScheduledTask() error {
 		return fmt.Errorf("failed to query pending data: %v", err)
 	}
 
+	// TODO: If the status remains pending for a long time, it should be marked as failed.
+
 	jwtToken, err := createJWTToken(s.serviceName, s.privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to create JWT token: %v", err)

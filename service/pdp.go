@@ -111,21 +111,16 @@ func GetProofSetCreateStatus(txHash, serviceURL, jwtToken string) error {
 			OK                *bool   `json:"ok"`
 			ProofSetId        *uint64 `json:"proofSetId,omitempty"`
 		}
-		err = json.Unmarshal(bodyBytes, &response)
-		if err != nil {
+
+		if err = json.Unmarshal(bodyBytes, &response); err != nil {
 			return fmt.Errorf("failed to parse JSON response: %v", err)
 		}
 
-		// Display the status
-		fmt.Printf("Proof Set Creation Status:\n")
-		fmt.Printf("Transaction Hash: %s\n", response.CreateMessageHash)
-		fmt.Printf("Transaction Status: %s\n", response.TxStatus)
 		if response.OK != nil {
-			fmt.Printf("Transaction Successful: %v\n", *response.OK)
-		} else {
-			fmt.Printf("Transaction Successful: Pending\n")
+			slog.Info("Transaction Status", "status", *response.OK)
 		}
-		fmt.Printf("Proofset Created: %v\n", response.ProofsetCreated)
+
+		slog.Info("Proofset Created", "created", response.ProofsetCreated)
 		if response.ProofSetId != nil {
 			fmt.Printf("ProofSet ID: %d\n", *response.ProofSetId)
 		}
@@ -220,10 +215,7 @@ func AddRoots(extraDataHexStr, serviceURL, jwtToken string, proofSetID int, root
 	}
 	bodyString := string(bodyBytes)
 
-	if resp.StatusCode == http.StatusCreated {
-		fmt.Printf("Roots added to proof set ID %d successfully.\n", proofSetID)
-		fmt.Printf("Response: %s\n", bodyString)
-	} else {
+	if resp.StatusCode != http.StatusCreated {
 		return fmt.Errorf("failed to add roots, status code %d: %s", resp.StatusCode, bodyString)
 	}
 
