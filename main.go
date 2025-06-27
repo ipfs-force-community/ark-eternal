@@ -13,8 +13,8 @@ import (
 
 func main() {
 	app := &cli.Command{
-		Name:  "pdp-hackthon",
-		Usage: "pdp hackthon",
+		Name:  "ark external",
+		Usage: "ark external service",
 		Commands: []*cli.Command{
 			{
 				Name:   "create-proof-set-id",
