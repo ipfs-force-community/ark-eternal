@@ -3,7 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 
 	"github.com/urfave/cli/v3"
 
@@ -98,13 +102,46 @@ func action(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("failed to load private key: %w", err)
 	}
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	ser := service.NewService(ctx, db, privateKey, cmd.Int("proof_set_id"), cmd.String("service_url"), cmd.String("service_name"))
 
+	wg := &sync.WaitGroup{}
+	exit := make(chan struct{})
+
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		ser.Schedule()
 	}()
 
-	ser.Run(cmd.Int32("port"))
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := ser.Start(cmd.Int32("port")); err != nil {
+			slog.Error("failed to start service", "error", err)
+			cancel()
+			close(exit)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-quit
+		cancel()
+		close(exit)
+	}()
+
+	<-exit
+
+	if err := ser.Close(); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to close service: %v\n", err)
+	}
+
+	wg.Wait()
 
 	return nil
 }

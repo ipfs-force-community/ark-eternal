@@ -17,6 +17,7 @@ import (
 
 type Service struct {
 	ctx         context.Context
+	srv         *http.Server
 	db          *gorm.DB
 	privateKey  *ecdsa.PrivateKey
 	proofSetID  int
@@ -32,7 +33,7 @@ func NewService(
 	serviceURL string,
 	serviceName string,
 ) *Service {
-	return &Service{
+	s := &Service{
 		ctx:         ctx,
 		db:          db,
 		privateKey:  privateKey,
@@ -40,9 +41,17 @@ func NewService(
 		serviceURL:  serviceURL,
 		serviceName: serviceName,
 	}
+
+	r := s.registerRoutes()
+	s.srv = &http.Server{
+		Addr:    ":8080", // Default address, can be overridden in Start method
+		Handler: r,
+	}
+
+	return s
 }
 
-func (s *Service) Run(port int32) error {
+func (s *Service) registerRoutes() *gin.Engine {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
@@ -61,6 +70,7 @@ func (s *Service) Run(port int32) error {
 			"message": "pong",
 		})
 	})
+
 	r.POST("/upload", func(c *gin.Context) {
 		if err := s.uploadFile(c); err != nil {
 			slog.Error("failed to upload file", "error", err)
@@ -106,7 +116,16 @@ func (s *Service) Run(port int32) error {
 		}
 	})
 
-	r.Run(fmt.Sprintf(":%d", port))
+	return r
+}
+
+func (s *Service) Start(port int32) error {
+	s.srv.Addr = fmt.Sprintf(":%d", port)
+	slog.Info("starting server", "address", s.srv.Addr)
+	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("failed to start server: %v", err)
+	}
+
 	return nil
 }
 
@@ -153,6 +172,17 @@ func (s *Service) performScheduledTask() error {
 		}
 
 		slog.Info("updated file info status to completed", "file_id", fileInfo.ID, "file_name", fileInfo.FileName)
+	}
+
+	return nil
+}
+
+func (s *Service) Close() error {
+	if s.srv != nil {
+		if err := s.srv.Shutdown(s.ctx); err != nil {
+			return fmt.Errorf("failed to shutdown server: %v", err)
+		}
+		slog.Info("server shutdown gracefully")
 	}
 
 	return nil
