@@ -24,14 +24,14 @@ import (
 
 const chunkSize = 10 << 20
 
-type UploadRequest struct {
+type uploadRequest struct {
 	UserAddress string `json:"user_address"`
 	FileName    string `json:"file_name"`
 	ResourceURL string `json:"resource_url"`
 }
 
 func (s *Service) uploadFile(c *gin.Context) error {
-	ur := &UploadRequest{}
+	ur := &uploadRequest{}
 	if err := c.ShouldBindJSON(ur); err != nil {
 		return fmt.Errorf("failed to bind JSON: %w", err)
 	}
@@ -238,7 +238,7 @@ func downloadContent(resourceURL string) ([]byte, error) {
 	slog.Info("Downloading content from resource URL", "url", resourceURL)
 	url, err := launcher.New().
 		Headless(true).
-		NoSandbox(true). // 👈 关键
+		NoSandbox(true).
 		Launch()
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch browser: %w", err)
@@ -250,7 +250,7 @@ func downloadContent(resourceURL string) ([]byte, error) {
 	html, err := page.Eval(`() => {
 		const docClone = document.cloneNode(true);
 
-		// 处理 <link rel="stylesheet">
+		// <link rel="stylesheet">
 		docClone.querySelectorAll('link[rel=stylesheet]').forEach(link => {
 			const style = document.createElement('style');
 			fetch(link.href)
@@ -260,7 +260,7 @@ func downloadContent(resourceURL string) ([]byte, error) {
 			link.replaceWith(style);
 		});
 
-		// 处理 <script src=...>
+		// <script src=...>
 		docClone.querySelectorAll('script[src]').forEach(script => {
 			const newScript = document.createElement('script');
 			fetch(script.src)
@@ -270,7 +270,7 @@ func downloadContent(resourceURL string) ([]byte, error) {
 			script.replaceWith(newScript);
 		});
 
-		// 处理 <img src=...> 等
+		// <img src=...> 等
 		const toDataURL = async url => {
 			const blob = await fetch(url).then(r => r.blob());
 			return new Promise(resolve => {

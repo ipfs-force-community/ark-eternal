@@ -12,11 +12,6 @@ import (
 	"github.com/ipfs-force-community/ark-eternal/database"
 )
 
-type DownloadFileRequest struct {
-	UserAddress string `json:"user_address"`
-	FileName    string `json:"file_name"`
-}
-
 func (s *Service) downloadFile(c *gin.Context) error {
 	userAddress := c.Query("user_address")
 	if userAddress == "" {

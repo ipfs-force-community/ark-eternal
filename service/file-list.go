@@ -9,12 +9,17 @@ import (
 )
 
 const (
+	// KB represents a kilobyte (1024 bytes)
 	KB = 1 << 10
+	// MB represents a megabyte (1024 kilobytes)
 	MB = 1 << 20
+	// GB represents a gigabyte (1024 megabytes)
 	GB = 1 << 30
+	// TB represents a terabyte (1024 gigabytes)
 	TB = 1 << 40
 )
 
+// FileInfo represents the information of a file in the list response.
 type FileInfo struct {
 	Name       string `json:"file_name"`
 	Root       string `json:"root"`

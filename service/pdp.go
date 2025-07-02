@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+// CreateProofSet creates a proof set with the given record keeper and extra data.
 func CreateProofSet(recordKeeper, extraDataHexStr, serviceURL, jwtToken string) (string, error) {
 	// Construct the request payload
 	requestBody := map[string]string{
@@ -65,11 +66,13 @@ func CreateProofSet(recordKeeper, extraDataHexStr, serviceURL, jwtToken string) 
 		txHash := parts[len(parts)-1]
 		fmt.Printf("Transaction Hash: %s\n", txHash)
 		return location, nil
-	} else {
-		return "", fmt.Errorf("failed to extract transaction hash from Location header")
 	}
+
+	return "", fmt.Errorf("failed to extract transaction hash from Location header")
+
 }
 
+// GetProofSetCreateStatus retrieves the status of a proof set creation by transaction hash.
 func GetProofSetCreateStatus(txHash, serviceURL, jwtToken string) error {
 	// Ensure txHash starts with '0x'
 	if !strings.HasPrefix(txHash, "0x") {
@@ -109,7 +112,7 @@ func GetProofSetCreateStatus(txHash, serviceURL, jwtToken string) error {
 			Service           string  `json:"service"`
 			TxStatus          string  `json:"txStatus"`
 			OK                *bool   `json:"ok"`
-			ProofSetId        *uint64 `json:"proofSetId,omitempty"`
+			ProofSetID        *uint64 `json:"proofSetId,omitempty"`
 		}
 
 		if err = json.Unmarshal(bodyBytes, &response); err != nil {
@@ -121,8 +124,8 @@ func GetProofSetCreateStatus(txHash, serviceURL, jwtToken string) error {
 		}
 
 		slog.Info("Proofset Created", "created", response.ProofsetCreated)
-		if response.ProofSetId != nil {
-			fmt.Printf("ProofSet ID: %d\n", *response.ProofSetId)
+		if response.ProofSetID != nil {
+			fmt.Printf("ProofSet ID: %d\n", *response.ProofSetID)
 		}
 	} else {
 		return fmt.Errorf("failed to get proof set status, status code %d: %s", resp.StatusCode, string(bodyBytes))
@@ -131,6 +134,7 @@ func GetProofSetCreateStatus(txHash, serviceURL, jwtToken string) error {
 	return nil
 }
 
+// AddRoots adds roots to a proof set with the given parameters.
 func AddRoots(extraDataHexStr, serviceURL, jwtToken string, proofSetID int, rootInputs []string) error {
 	// Parse the root inputs to construct the request payload
 	type SubrootEntry struct {
@@ -213,10 +217,9 @@ func AddRoots(extraDataHexStr, serviceURL, jwtToken string, proofSetID int, root
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %v", err)
 	}
-	bodyString := string(bodyBytes)
 
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("failed to add roots, status code %d: %s", resp.StatusCode, bodyString)
+		return fmt.Errorf("failed to add roots, status code %d: %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	return nil

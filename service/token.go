@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	_ "github.com/mattn/go-sqlite3"
 )
 
+// GetJWTToken generates a JWT token for the specified service using the private key at the given path.
 func GetJWTToken(serviceName, keyPath string) (string, error) {
 	privKey, err := LoadPrivateKey(keyPath)
 	if err != nil {
@@ -31,6 +31,7 @@ func GetJWTToken(serviceName, keyPath string) (string, error) {
 	return jwtToken, nil
 }
 
+// LoadPrivateKey loads the ECDSA private key from the specified path.
 func LoadPrivateKey(keyPath string) (*ecdsa.PrivateKey, error) {
 	file, err := os.Open(keyPath)
 	if !errors.Is(err, os.ErrNotExist) && err != nil {
@@ -77,6 +78,7 @@ func LoadPrivateKey(keyPath string) (*ecdsa.PrivateKey, error) {
 	return loadPrivateKey(file)
 }
 
+// ExportPublicKey exports the public key from the private key stored at the specified path.
 func ExportPublicKey(keyPath string) (string, error) {
 	file, err := os.Open(keyPath)
 	if err != nil {

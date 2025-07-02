@@ -15,6 +15,7 @@ import (
 	"github.com/ipfs-force-community/ark-eternal/database"
 )
 
+// Service represents the Ark Eternal service.
 type Service struct {
 	ctx         context.Context
 	srv         *http.Server
@@ -25,6 +26,7 @@ type Service struct {
 	serviceName string
 }
 
+// NewService creates a new instance of the Service.
 func NewService(
 	ctx context.Context,
 	db *gorm.DB,
@@ -119,6 +121,7 @@ func (s *Service) registerRoutes() *gin.Engine {
 	return r
 }
 
+// Start starts the HTTP server on the specified port.
 func (s *Service) Start(port int32) error {
 	s.srv.Addr = fmt.Sprintf(":%d", port)
 	slog.Info("starting server", "address", s.srv.Addr)
@@ -129,6 +132,7 @@ func (s *Service) Start(port int32) error {
 	return nil
 }
 
+// Schedule runs a periodic task to check for pending file uploads and process them.
 func (s *Service) Schedule() {
 	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
@@ -177,6 +181,7 @@ func (s *Service) performScheduledTask() error {
 	return nil
 }
 
+// Close gracefully shuts down the service.
 func (s *Service) Close() error {
 	if s.srv != nil {
 		if err := s.srv.Shutdown(s.ctx); err != nil {
