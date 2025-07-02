@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -9,14 +10,16 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
+	"time"
 
+	"github.com/PuerkitoBio/goquery"
+	"github.com/chromedp/chromedp"
 	"github.com/filecoin-project/go-commp-utils/nonffi"
 	commcid "github.com/filecoin-project/go-fil-commcid"
 	commp "github.com/filecoin-project/go-fil-commp-hashhash"
 	"github.com/filecoin-project/go-state-types/abi"
 	"github.com/gin-gonic/gin"
-	"github.com/go-rod/rod"
-	"github.com/go-rod/rod/lib/launcher"
 	"github.com/ipfs/go-cid"
 
 	"github.com/ipfs-force-community/ark-eternal/database"
@@ -36,7 +39,7 @@ func (s *Service) uploadFile(c *gin.Context) error {
 		return fmt.Errorf("failed to bind JSON: %w", err)
 	}
 
-	content, err := downloadContent(ur.ResourceURL)
+	content, err := downloadContent(s.ctx, ur.ResourceURL)
 	if err != nil {
 		return fmt.Errorf("failed to download content: %w", err)
 	}
@@ -234,69 +237,42 @@ func preparePiece(r io.ReadSeeker) (cid.Cid, uint64, []byte, error) {
 	return pieceCIDComputed, paddedPieceSize, digest, nil
 }
 
-func downloadContent(resourceURL string) ([]byte, error) {
+func downloadContent(ctx context.Context, resourceURL string) ([]byte, error) {
 	slog.Info("Downloading content from resource URL", "url", resourceURL)
-	url, err := launcher.New().
-		Headless(true).
-		NoSandbox(true).
-		Launch()
+	// 1. Create Chromedp context with timeout
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	allocCtx, allocCancel := chromedp.NewExecAllocator(ctx, chromedp.DefaultExecAllocatorOptions[:]...)
+	defer allocCancel()
+
+	chromeCtx, chromeCancel := chromedp.NewContext(allocCtx)
+	defer chromeCancel()
+
+	// 2. Use Chromedp to fetch rendered HTML
+	var htmlContent string
+	err := chromedp.Run(chromeCtx,
+		chromedp.Navigate(resourceURL),
+		chromedp.WaitVisible("body", chromedp.ByQuery), // Wait for page load
+		chromedp.OuterHTML("html", &htmlContent),       // Get full HTML
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to launch browser: %w", err)
+		return nil, fmt.Errorf("failed to render page with chromedp: %v", err)
 	}
 
-	browser := rod.New().ControlURL(url).MustConnect()
-	page := browser.MustPage(resourceURL).MustWaitLoad()
-
-	html, err := page.Eval(`() => {
-		const docClone = document.cloneNode(true);
-
-		// <link rel="stylesheet">
-		docClone.querySelectorAll('link[rel=stylesheet]').forEach(link => {
-			const style = document.createElement('style');
-			fetch(link.href)
-				.then(resp => resp.text())
-				.then(css => style.textContent = css)
-				.catch(() => {});
-			link.replaceWith(style);
-		});
-
-		// <script src=...>
-		docClone.querySelectorAll('script[src]').forEach(script => {
-			const newScript = document.createElement('script');
-			fetch(script.src)
-				.then(resp => resp.text())
-				.then(js => newScript.textContent = js)
-				.catch(() => {});
-			script.replaceWith(newScript);
-		});
-
-		// <img src=...> 等
-		const toDataURL = async url => {
-			const blob = await fetch(url).then(r => r.blob());
-			return new Promise(resolve => {
-				const reader = new FileReader();
-				reader.onload = () => resolve(reader.result);
-				reader.readAsDataURL(blob);
-			});
-		};
-
-		const promises = [];
-		docClone.querySelectorAll('img').forEach(img => {
-			if (img.src.startsWith('http')) {
-				const p = toDataURL(img.src).then(dataUrl => {
-					img.setAttribute('src', dataUrl);
-				}).catch(() => {});
-				promises.push(p);
-			}
-		});
-
-		return Promise.all(promises).then(() => '<!DOCTYPE html>\n' + docClone.documentElement.outerHTML);
-	}`)
-
+	// 4. Use goquery to parse HTML (since Colly doesn't have ParseHTML)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlContent))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse HTML with goquery: %v", err)
 	}
 
-	slog.Info("Content downloaded successfully", "length", len(html.Value.Str()))
-	return []byte(html.Value.Str()), nil
+	// 5. Save HTML to file
+	html, err := doc.Html()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get HTML content: %v", err)
+	}
+
+	slog.Info("Content downloaded successfully", "length", len(html))
+	return []byte(html), nil
+
 }
