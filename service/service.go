@@ -168,11 +168,19 @@ func (s *Service) performScheduledTask() error {
 		cids := strings.ReplaceAll(fileInfo.CIDs, " ", "+")
 		root := fmt.Sprintf("%s:%s", fileInfo.Root, cids)
 		if err := AddRoots("", s.serviceURL, jwtToken, fileInfo.ProofSetID, []string{root}); err != nil {
-			return fmt.Errorf("failed to add roots to proof set: %v", err)
+			slog.Error("failed to add roots", "file_id", fileInfo.ID, "file_name", fileInfo.FileName, "error", err)
+			if !strings.Contains(err.Error(), "not found") {
+				if err := database.UpdateFileStatus(s.db, fileInfo.ID, database.StatusFailed); err != nil {
+					slog.Error("failed to update file info status", "file_id", fileInfo.ID, "file_name", fileInfo.FileName, "error", err)
+				}
+			}
+
+			continue
 		}
 
 		if err := database.UpdateFileStatus(s.db, fileInfo.ID, database.StatusCompleted); err != nil {
-			return fmt.Errorf("failed to update file info status: %v", err)
+			slog.Error("failed to update file info status", "file_id", fileInfo.ID, "file_name", fileInfo.FileName, "error", err)
+			continue
 		}
 
 		slog.Info("updated file info status to completed", "file_id", fileInfo.ID, "file_name", fileInfo.FileName)
