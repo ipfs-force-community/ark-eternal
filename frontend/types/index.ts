@@ -12,6 +12,10 @@ export interface UploadRequest {
   resource_url: string
 }
 
+export interface UploadResponse {
+  message: string
+}
+
 export interface ProofSet {
   id: string
   name: string

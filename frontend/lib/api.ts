@@ -1,5 +1,5 @@
 import { config } from "./config"
-import type { FileInfo, UploadRequest } from "@/types"
+import type { FileInfo, UploadRequest, UploadResponse } from "@/types"
 
 class ApiService {
   private baseUrl: string
@@ -35,13 +35,12 @@ class ApiService {
     return this.request<FileInfo[]>(`${config.api.endpoints.files}?user_address=${encodeURIComponent(userAddress)}`)
   }
 
-  async uploadFile(data: UploadRequest): Promise<any> {
-    return this.request(config.api.endpoints.upload, {
+  async uploadFile(data: UploadRequest): Promise<UploadResponse> {
+    return this.request<UploadResponse>(config.api.endpoints.upload, {
       method: "POST",
       body: JSON.stringify(data),
     })
   }
-
   async downloadFile(userAddress: string, fileName: string): Promise<string> {
     const url = `${this.baseUrl}${config.api.endpoints.download}?user_address=${encodeURIComponent(userAddress)}&file_name=${encodeURIComponent(fileName)}`
 

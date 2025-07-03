@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useWallet } from "@/hooks/use-wallet"
 import { useToast } from "@/components/toast"
 import { apiService } from "@/lib/api"
@@ -20,19 +20,19 @@ export function FileManagement() {
   const { isConnected, address } = useWallet()
   const { showToast } = useToast()
 
-  const fetchFiles = async () => {
+  const fetchFiles = useCallback(async () => {
     if (!address) return
 
     setLoading(true)
     try {
       const fileList = await apiService.getFiles(address)
       setFiles(fileList)
-    } catch (error) {
+    } catch {
       showToast("Failed to load files", "error")
     } finally {
       setLoading(false)
     }
-  }
+  }, [address, showToast])
 
   const handleUpload = async () => {
     if (!address || !pageUrl.trim() || !fileName.trim()) {
@@ -52,7 +52,7 @@ export function FileManagement() {
       setPageUrl("")
       setFileName("")
       fetchFiles()
-    } catch (error) {
+    } catch {
       showToast("Upload failed", "error")
     } finally {
       setUploading(false)
@@ -71,7 +71,7 @@ export function FileManagement() {
       } else {
         showToast("Unable to open new window", "error")
       }
-    } catch (error) {
+    } catch {
       showToast("Failed to download file", "error")
     }
   }
@@ -79,18 +79,19 @@ export function FileManagement() {
   const handleDownload = async (cid: string) => {
     if (!cid) return
 
-
-    const url = await apiService.downloadFileByCID(cid)
-    const newWindow = window.open(url, "_blank")
-    showToast("Failed to download file", "error")
-
+    try {
+      const url = await apiService.downloadFileByCID(cid)
+      window.open(url, "_blank")
+    } catch {
+      showToast("Failed to download file", "error")
+    }
   }
 
   useEffect(() => {
     if (isConnected && address) {
       fetchFiles()
     }
-  }, [isConnected, address])
+  }, [isConnected, address, fetchFiles])
 
   const getStatusColor = (status: FileInfo["status"]) => {
     switch (status) {
