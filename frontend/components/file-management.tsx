@@ -48,10 +48,10 @@ export function FileManagement() {
         resource_url: pageUrl.trim(),
       })
 
-      showToast("File uploaded successfully")
+      showToast("File uploaded successfully", "success")
       setPageUrl("")
       setFileName("")
-      fetchFiles()
+      await fetchFiles()
     } catch {
       showToast("Upload failed", "error")
     } finally {

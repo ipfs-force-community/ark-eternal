@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { CheckCircle, AlertCircle, X } from "lucide-react"
 
 interface Toast {
@@ -43,10 +43,10 @@ let toastCounter = 0
 export function useToast() {
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  const showToast = (message: string, type: "success" | "error" = "success") => {
+  const showToast = useCallback((msg: string, type: "success" | "error") => {
     const id = `toast-${++toastCounter}`
-    setToasts((prev) => [...prev, { id, message, type }])
-  }
+    setToasts((prev) => [...prev, { id, message: msg, type }])
+  }, [])
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id))
