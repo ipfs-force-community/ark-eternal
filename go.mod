@@ -3,7 +3,7 @@ module github.com/ipfs-force-community/ark-eternal
 go 1.24.4
 
 require (
-	github.com/PuerkitoBio/goquery v1.10.2
+	github.com/chromedp/chromedp v0.13.7
 	github.com/filecoin-project/go-commp-utils/nonffi v0.0.0-20240802040721-2a04ffc8ffe8
 	github.com/filecoin-project/go-fil-commcid v0.2.0
 	github.com/filecoin-project/go-fil-commp-hashhash v0.2.0
@@ -11,6 +11,8 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/ipfs/go-cid v0.5.0
 	github.com/urfave/cli/v3 v3.3.8
+	gorm.io/driver/sqlite v1.6.0
+	gorm.io/gorm v1.30.0
 )
 
 require (
@@ -47,9 +49,9 @@ require (
 )
 
 require (
+	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/bytedance/sonic v1.13.3 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
-	github.com/chromedp/chromedp v0.13.7
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-gonic/gin v1.10.1
@@ -73,6 +75,4 @@ require (
 	golang.org/x/text v0.26.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/driver/sqlite v1.6.0
-	gorm.io/gorm v1.30.0
 )

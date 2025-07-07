@@ -13,6 +13,12 @@ Resources are stored under unique **Content Identifiers (CIDs)**. Users can seam
 
 ---
 
+## Demo
+
+🌐 **[Try Ark Eternal Live](https://www.arketernal.xyz/)** — Experience decentralized web archiving in action
+
+---
+
 ## Vision
 
 A censorship-resistant, permanent archive of human knowledge.

@@ -274,5 +274,4 @@ func downloadContent(ctx context.Context, resourceURL string) ([]byte, error) {
 
 	slog.Info("Content downloaded successfully", "length", len(html))
 	return []byte(html), nil
-
 }
